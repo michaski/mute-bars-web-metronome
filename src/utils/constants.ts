@@ -21,6 +21,6 @@ export const NOTE_VALUES: NoteValueOption[] = [
 ];
 
 export const MIN_BPM = 20;
-export const MAX_BPM = 400;
+export const MAX_BPM = 300;
 export const DEFAULT_BPM = 120;
 export const DEFAULT_BEATS_COUNT = 4;
