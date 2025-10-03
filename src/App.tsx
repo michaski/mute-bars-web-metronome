@@ -1,7 +1,9 @@
+import Metronome from "./components/Metronome"
+
 function App() {
   return (
     <>
-      <h1>Metronome</h1>
+      <Metronome />
     </>
   )
 }
