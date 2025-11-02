@@ -1,15 +1,16 @@
+import type { ClickType } from "../utils/audioUtils";
+
 export type NoteValue = 
   | 'whole' 
   | 'half' 
   | 'quarter' 
   | 'eighth' 
   | 'sixteenth' 
-  | 'triplet-eighth' 
-  | 'triplet-sixteenth';
+  | 'triplet-eighth';
 
 export interface Beat {
   id: number;
-  isAccent: boolean;
+  type: ClickType;
 }
 
 export interface TimingMetrics {
@@ -35,7 +36,8 @@ export interface BeatPatternProps {
   onAddBeat: () => void;
   onRemoveBeat: () => void;
   onToggleAccent: (id: number) => void;
-  currentBeat?: number;
+  currentBeat: number;
+  noteValue: NoteValue;
 }
 
 export interface NoteValueSelectorProps {

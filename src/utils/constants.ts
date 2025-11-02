@@ -7,7 +7,15 @@ export const NOTE_VALUE_MULTIPLIERS: Record<NoteValue, number> = {
   eighth: 0.5,
   sixteenth: 0.25,
   'triplet-eighth': 1/3,
-  'triplet-sixteenth': 1/6,
+};
+
+export const NOTE_VALUE_SUBDIVISIONS_COUNT: Record<NoteValue, number> = {
+  whole: 1/4,
+  half: 1/2,
+  quarter: 1,
+  eighth: 2,
+  sixteenth: 4,
+  'triplet-eighth': 3,
 };
 
 export const NOTE_VALUES: NoteValueOption[] = [
@@ -17,7 +25,6 @@ export const NOTE_VALUES: NoteValueOption[] = [
   { value: 'eighth', label: '♪ Eighth Note' },
   { value: 'sixteenth', label: '𝅘𝅥𝅯 Sixteenth Note' },
   { value: 'triplet-eighth', label: '♪♪♪ Eighth Triplet' },
-  { value: 'triplet-sixteenth', label: '𝅘𝅥𝅯𝅘𝅥𝅯𝅘𝅥𝅯 Sixteenth Triplet' },
 ];
 
 export const MIN_BPM = 20;
