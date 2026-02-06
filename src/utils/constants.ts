@@ -9,9 +9,9 @@ export const NOTE_VALUE_MULTIPLIERS: Record<NoteValue, number> = {
   'triplet-eighth': 1/3,
 };
 
-export const NOTE_VALUE_SUBDIVISIONS_COUNT: Record<NoteValue, number> = {
-  whole: 1/4,
-  half: 1/2,
+export const PULSES_PER_BEAT: Record<NoteValue, number> = {
+  whole: 1,
+  half: 1,
   quarter: 1,
   eighth: 2,
   sixteenth: 4,

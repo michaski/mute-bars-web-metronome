@@ -37,7 +37,6 @@ export interface BeatPatternProps {
   onRemoveBeat: () => void;
   onToggleAccent: (id: number) => void;
   currentBeat: number;
-  noteValue: NoteValue;
 }
 
 export interface NoteValueSelectorProps {

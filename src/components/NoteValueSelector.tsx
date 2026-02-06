@@ -1,4 +1,3 @@
-import React from 'react'
 import type { NoteValueSelectorProps, NoteValue } from '../types';
 import { NOTE_VALUES } from '../utils/constants.js';
 

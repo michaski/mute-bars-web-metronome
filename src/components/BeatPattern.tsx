@@ -1,44 +1,39 @@
 import type { BeatPatternProps } from '../types';
-import { NOTE_VALUE_SUBDIVISIONS_COUNT } from '../utils/constants';
 
-export default function BeatPattern({ 
-  beats, 
+export default function BeatPattern({
+  beats,
   currentBeat,
-  noteValue,
-  onAddBeat, 
-  onRemoveBeat, 
-  onToggleAccent 
+  onAddBeat,
+  onRemoveBeat,
+  onToggleAccent
 }: BeatPatternProps) {
   return (
     <div className="flex items-center gap-3 mb-12">
-      <button 
+      <button
         onClick={onRemoveBeat}
         disabled={beats.length <= 1}
         className="w-12 h-12 rounded-full border-2 border-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-xl flex-shrink-0 transition-colors"
       >
         −
       </button>
-      
+
       <div className="flex-1 overflow-x-auto">
         <div className="flex items-center justify-center gap-4 min-w-min px-4">
           {beats.map((beat, index) => {
-            if (beat.type === 'subdivision') {
-              return null;
-            }
-            const isCurrentBeat = index === Math.ceil(currentBeat / NOTE_VALUE_SUBDIVISIONS_COUNT[noteValue]); // Adjust for subdivisions
+            const isCurrentBeat = index === currentBeat;
             const isAccent = beat.type === 'accent';
-            
+
             return (
               <button
                 key={beat.id}
                 onClick={() => onToggleAccent(beat.id)}
                 className={`w-6 h-6 rounded-full border-2 flex-shrink-0 transition-all cursor-pointer
-                  ${isAccent 
-                    ? 'border-orange-500' 
+                  ${isAccent
+                    ? 'border-orange-500'
                     : 'border-gray-500'
                   }
-                  ${isCurrentBeat 
-                    ? 'bg-orange-500' 
+                  ${isCurrentBeat
+                    ? 'bg-orange-500'
                     : ''
                   }
                 `}
@@ -48,8 +43,8 @@ export default function BeatPattern({
           })}
         </div>
       </div>
-      
-      <button 
+
+      <button
         onClick={onAddBeat}
         className="w-12 h-12 rounded-full border-2 border-gray-600 hover:border-gray-500 flex items-center justify-center text-xl flex-shrink-0 transition-colors"
       >
