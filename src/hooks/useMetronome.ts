@@ -37,12 +37,18 @@ export function useMetronome({
   const [isInGap, setIsInGap] = useState(false);
 
   // Refs for values that need to be accessed in scheduler without re-creating it
+  const beatsRef = useRef<Beat[]>(beats);
   const audioEngineRef = useRef<AudioEngine | null>(null);
   const schedulerIdRef = useRef<number | null>(null);
   const nextClickTimeRef = useRef<number>(0);
   const currentPulseRef = useRef<number>(0);
   const currentBarRef = useRef<number>(0);
   const isInGapRef = useRef<boolean>(false);
+
+  // Keep beatsRef in sync with latest beats prop
+  useEffect(() => {
+    beatsRef.current = beats;
+  }, [beats]);
 
   // Initialize audio engine once
   useEffect(() => {
@@ -65,7 +71,7 @@ export function useMetronome({
 
   // Total number of pulses (main beats + subdivisions) in one bar
   const getTotalPulsesPerBar = (): number => {
-    return beats.length * PULSES_PER_BEAT[noteValue];
+    return beatsRef.current.length * PULSES_PER_BEAT[noteValue];
   };
 
   // Convert pulse index to main beat index
@@ -82,7 +88,7 @@ export function useMetronome({
     const subPulseIndex = pulseIndex % pulsesPerBeat;
 
     if (subPulseIndex === 0) {
-      const beat = beats[mainBeatIndex];
+      const beat = beatsRef.current[mainBeatIndex];
       if (beat?.type === 'inactive') return null;
       return beat?.type === 'accent' ? 'accent' : 'regular';
     }
