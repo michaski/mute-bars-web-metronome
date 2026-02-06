@@ -1,16 +1,16 @@
-import type { ClickType } from "../utils/audioUtils";
-
-export type NoteValue = 
-  | 'whole' 
-  | 'half' 
-  | 'quarter' 
-  | 'eighth' 
-  | 'sixteenth' 
+export type NoteValue =
+  | 'whole'
+  | 'half'
+  | 'quarter'
+  | 'eighth'
+  | 'sixteenth'
   | 'triplet-eighth';
+
+export type BeatType = 'accent' | 'regular' | 'inactive';
 
 export interface Beat {
   id: number;
-  type: ClickType;
+  type: BeatType;
 }
 
 export interface TimingMetrics {

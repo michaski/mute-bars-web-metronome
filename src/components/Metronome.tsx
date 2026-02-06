@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { Beat, NoteValue } from '../types/index.js';
+import type { Beat, BeatType, NoteValue } from '../types/index.js';
 import TempoControl from './TempoControl.js';
 import BeatPattern from './BeatPattern.js';
 import NoteValueSelector from './NoteValueSelector.js';
@@ -7,7 +7,7 @@ import PlaybackControls from './PlaybackControls.js';
 import GapClickControls from './GapClickControls.js';
 import { useMetronome } from '../hooks/useMetronome.js';
 import { calculateTimings } from '../utils/timingUtils.js';
-import { DEFAULT_BPM } from '../utils/constants.js';
+import { DEFAULT_BPM, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
 
 export default function Metronome() {
   const [bpm, setBpm] = useState<number>(DEFAULT_BPM);
@@ -49,9 +49,15 @@ export default function Metronome() {
     }
   };
 
+  const nextBeatType = (current: BeatType): BeatType => {
+    if (current === 'accent') return 'regular';
+    if (current === 'regular') return 'inactive';
+    return 'accent';
+  };
+
   const handleToggleAccent = (id: number) => {
     setBeats(beats.map(beat =>
-      beat.id === id ? { ...beat, type: beat.type === 'accent' ? 'regular' : 'accent' } : beat
+      beat.id === id ? { ...beat, type: nextBeatType(beat.type) } : beat
     ));
   };
 
@@ -64,6 +70,20 @@ export default function Metronome() {
   };
 
   const handleNoteValueChange = (value: NoteValue) => {
+    const multiplier = NOTE_VALUE_MULTIPLIERS[value];
+    if (multiplier > 1) {
+      // Half/whole: set non-aligned beats to inactive
+      setBeats(prev => prev.map((beat, i) =>
+        i % multiplier !== 0
+          ? { ...beat, type: 'inactive' as BeatType }
+          : beat.type === 'inactive' ? { ...beat, type: 'regular' as BeatType } : beat
+      ));
+    } else {
+      // Quarter or below: restore inactive beats to regular
+      setBeats(prev => prev.map(beat =>
+        beat.type === 'inactive' ? { ...beat, type: 'regular' as BeatType } : beat
+      ));
+    }
     setNoteValue(value);
   };
 

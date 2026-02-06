@@ -22,22 +22,25 @@ export default function BeatPattern({
           {beats.map((beat, index) => {
             const isCurrentBeat = index === currentBeat;
             const isAccent = beat.type === 'accent';
+            const isInactive = beat.type === 'inactive';
 
             return (
               <button
                 key={beat.id}
                 onClick={() => onToggleAccent(beat.id)}
                 className={`w-6 h-6 rounded-full border-2 flex-shrink-0 transition-all cursor-pointer
-                  ${isAccent
-                    ? 'border-orange-500'
-                    : 'border-gray-500'
+                  ${isInactive
+                    ? 'border-gray-700 opacity-30'
+                    : isAccent
+                      ? 'border-orange-500'
+                      : 'border-gray-500'
                   }
-                  ${isCurrentBeat
+                  ${isCurrentBeat && !isInactive
                     ? 'bg-orange-500'
                     : ''
                   }
                 `}
-                title={`Beat ${index + 1}: ${isAccent ? 'Accent' : 'Regular'} - Click to toggle`}
+                title={`Beat ${index + 1}: ${isInactive ? 'Inactive' : isAccent ? 'Accent' : 'Regular'} - Click to toggle`}
               />
             );
           })}

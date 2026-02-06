@@ -56,8 +56,9 @@ export function useMetronome({
   }, []);
 
   // Calculate interval between pulses in seconds
+  // For half/whole notes, cap at quarter-note speed (beats skip instead of slowing)
   const getClickInterval = (): number => {
-    const multiplier = NOTE_VALUE_MULTIPLIERS[noteValue];
+    const multiplier = Math.min(NOTE_VALUE_MULTIPLIERS[noteValue], 1);
     const quarterNoteSeconds = 60 / bpm;
     return quarterNoteSeconds * multiplier;
   };
@@ -74,14 +75,15 @@ export function useMetronome({
   };
 
   // Determine click type based on pulse position within the bar
-  const getPulseClickType = (pulseIndex: number): ClickType => {
+  // Returns null for inactive beats (no sound)
+  const getPulseClickType = (pulseIndex: number): ClickType | null => {
     const pulsesPerBeat = PULSES_PER_BEAT[noteValue];
     const mainBeatIndex = Math.floor(pulseIndex / pulsesPerBeat);
     const subPulseIndex = pulseIndex % pulsesPerBeat;
 
     if (subPulseIndex === 0) {
-      // This is a main beat pulse — use accent/regular from the beat pattern
       const beat = beats[mainBeatIndex];
+      if (beat?.type === 'inactive') return null;
       return beat?.type === 'accent' ? 'accent' : 'regular';
     }
     return 'subdivision';
@@ -120,10 +122,12 @@ export function useMetronome({
         setIsInGap(inGap);
       }
 
-      // Play click if not in gap
+      // Play click if not in gap and beat is active
       if (shouldPlay) {
         const clickType = getPulseClickType(pulseIndex);
-        audioEngine.playClick(clickType, nextClickTimeRef.current);
+        if (clickType !== null) {
+          audioEngine.playClick(clickType, nextClickTimeRef.current);
+        }
       }
 
       // Expose main beat index to UI (not pulse index)

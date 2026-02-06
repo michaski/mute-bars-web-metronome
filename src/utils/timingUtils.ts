@@ -6,7 +6,7 @@ export function calculateTimings(
   noteValue: NoteValue,
   mainBeatCount: number
 ): TimingMetrics {
-  const multiplier = NOTE_VALUE_MULTIPLIERS[noteValue];
+  const multiplier = Math.min(NOTE_VALUE_MULTIPLIERS[noteValue], 1);
   const quarterNoteMs = (60 / bpm) * 1000;
   const pulseIntervalMs = quarterNoteMs * multiplier;
   const totalPulses = mainBeatCount * PULSES_PER_BEAT[noteValue];
