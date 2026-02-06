@@ -50,9 +50,9 @@ export default function Metronome() {
   };
 
   const nextBeatType = (current: BeatType): BeatType => {
-    if (current === 'accent') return 'regular';
-    if (current === 'regular') return 'inactive';
-    return 'accent';
+    if (current === 'regular') return 'accent';
+    if (current === 'accent') return 'inactive';
+    return 'regular';
   };
 
   const handleToggleAccent = (id: number) => {
