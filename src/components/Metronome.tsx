@@ -6,7 +6,6 @@ import NoteValueSelector from './NoteValueSelector.js';
 import PlaybackControls from './PlaybackControls.js';
 import GapClickControls from './GapClickControls.js';
 import { useMetronome } from '../hooks/useMetronome.js';
-import { calculateTimings } from '../utils/timingUtils.js';
 import { DEFAULT_BPM, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
 
 export default function Metronome() {
@@ -23,7 +22,7 @@ export default function Metronome() {
   const [gapClickEnabled, setGapClickEnabled] = useState<boolean>(false);
 
   // Use the metronome hook
-  const { isPlaying, currentBeat, currentBar, isInGap, toggle } = useMetronome({
+  const { isPlaying, currentBeat, toggle } = useMetronome({
     bpm,
     noteValue,
     beats,
