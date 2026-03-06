@@ -8,7 +8,6 @@ import GapClickControls from './GapClickControls.js';
 import TempoSearchFAB from './TempoSearch/TempoSearchFAB.js';
 import TempoSearchSheet from './TempoSearch/TempoSearchSheet.js';
 import { useMetronome } from '../hooks/useMetronome.js';
-import { calculateTimings } from '../utils/timingUtils.js';
 import { DEFAULT_BPM, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
 
 export default function Metronome() {
@@ -26,7 +25,7 @@ export default function Metronome() {
   const [isTempoSearchOpen, setIsTempoSearchOpen] = useState(false);
 
   // Use the metronome hook
-  const { isPlaying, currentBeat, currentBar, isInGap, toggle } = useMetronome({
+  const { isPlaying, currentBeat, toggle } = useMetronome({
     bpm,
     noteValue,
     beats,
