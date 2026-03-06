@@ -57,3 +57,25 @@ export interface PlaybackControlsProps {
   isPlaying: boolean;
   onTogglePlay: () => void;
 }
+
+// Song Tempo Search
+export interface SongSearchResult {
+  id: string;
+  name: string;
+  artist: string;
+  albumArt: string | null;
+  bpm: number | null;
+  timeSignature: number | null;
+  genre: string | null;
+}
+
+export interface TempoSearchSheetProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onApply: (bpm: number, timeSignature: number) => void;
+}
+
+export interface SongCardProps {
+  song: SongSearchResult;
+  onApply: (bpm: number, timeSignature: number) => void;
+}

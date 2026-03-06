@@ -31,3 +31,8 @@ export const MIN_BPM = 20;
 export const MAX_BPM = 300;
 export const DEFAULT_BPM = 120;
 export const DEFAULT_BEATS_COUNT = 4;
+
+// Tempo Search
+export const SEARCH_DEBOUNCE_MS = 300;
+export const MAX_SEARCH_RESULTS = 10;
+export const DEFAULT_TIME_SIGNATURE = 4;

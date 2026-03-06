@@ -5,6 +5,8 @@ import BeatPattern from './BeatPattern.js';
 import NoteValueSelector from './NoteValueSelector.js';
 import PlaybackControls from './PlaybackControls.js';
 import GapClickControls from './GapClickControls.js';
+import TempoSearchFAB from './TempoSearch/TempoSearchFAB.js';
+import TempoSearchSheet from './TempoSearch/TempoSearchSheet.js';
 import { useMetronome } from '../hooks/useMetronome.js';
 import { calculateTimings } from '../utils/timingUtils.js';
 import { DEFAULT_BPM, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
@@ -21,6 +23,7 @@ export default function Metronome() {
   const [barsOn, setBarsOn] = useState<number>(3);
   const [barsOff, setBarsOff] = useState<number>(1);
   const [gapClickEnabled, setGapClickEnabled] = useState<boolean>(false);
+  const [isTempoSearchOpen, setIsTempoSearchOpen] = useState(false);
 
   // Use the metronome hook
   const { isPlaying, currentBeat, currentBar, isInGap, toggle } = useMetronome({
@@ -85,6 +88,17 @@ export default function Metronome() {
     setNoteValue(value);
   };
 
+  const handleApplyTempo = (newBpm: number, timeSignature: number) => {
+    setBpm(newBpm);
+    setNoteValue('quarter');
+    setIsTempoSearchOpen(false);
+    const newBeats: Beat[] = [];
+    for (let i = 0; i < timeSignature; i++) {
+      newBeats.push({ id: i + 1, type: i === 0 ? 'accent' : 'regular' });
+    }
+    setBeats(newBeats);
+  };
+
   const populateBeats = (beatCount: number) => {
     const accentedIndexes = new Set(
       beats.map((beat, i) => beat.type === 'accent' ? i : -1).filter(i => i >= 0)
@@ -137,6 +151,13 @@ export default function Metronome() {
         />
 
       </div>
+
+      <TempoSearchFAB onClick={() => setIsTempoSearchOpen(true)} />
+      <TempoSearchSheet
+        isOpen={isTempoSearchOpen}
+        onClose={() => setIsTempoSearchOpen(false)}
+        onApply={handleApplyTempo}
+      />
     </div>
   );
 }
