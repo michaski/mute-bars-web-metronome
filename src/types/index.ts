@@ -45,8 +45,10 @@ export interface NoteValueSelectorProps {
 }
 
 export interface GapClickControlsProps {
+  enabled: boolean;
   barsOn: number;
   barsOff: number;
+  onEnabledChange: (value: boolean) => void;
   onBarsOnChange: (value: number) => void;
   onBarsOffChange: (value: number) => void;
 }

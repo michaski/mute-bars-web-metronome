@@ -18,8 +18,9 @@ export default function Metronome() {
     { id: 3, type: 'regular' },
     { id: 4, type: 'regular' },
   ]);
-  const [barsOn, setBarsOn] = useState<number>(2);
-  const [barsOff, setBarsOff] = useState<number>(2);
+  const [barsOn, setBarsOn] = useState<number>(3);
+  const [barsOff, setBarsOff] = useState<number>(1);
+  const [gapClickEnabled, setGapClickEnabled] = useState<boolean>(false);
 
   // Use the metronome hook
   const { isPlaying, currentBeat, currentBar, isInGap, toggle } = useMetronome({
@@ -28,11 +29,8 @@ export default function Metronome() {
     beats,
     barsOn,
     barsOff,
-    useGapClick: barsOn > 0 && barsOff > 0,
+    useGapClick: gapClickEnabled && barsOn > 0 && barsOff > 0,
   });
-
-  // Calculate timing metrics
-  const timings = calculateTimings(bpm, noteValue, beats.length);
 
   // Handlers
   const handleBpmChange = (newBpm: number) => {
@@ -111,18 +109,6 @@ export default function Metronome() {
           onBpmChange={handleBpmChange}
         />
 
-        {/* Debug Info */}
-        <div className="text-center mb-8 text-sm text-gray-400 space-y-1">
-          <div>Clicks per bar: {timings.clicksPerBar}</div>
-          <div>Clicks per second: {timings.clicksPerSecond}</div>
-          <div>Interval between clicks: {timings.intervalMs}ms</div>
-          <div>Bar duration: {timings.barDurationMs}ms</div>
-          <div className="mt-2 font-semibold">
-            Current: Bar {currentBar + 1}, Beat {currentBeat + 1}
-            {isInGap && <span className="text-red-400 ml-2">(GAP - Silent)</span>}
-          </div>
-        </div>
-
         <BeatPattern
           beats={beats}
           currentBeat={currentBeat}
@@ -142,8 +128,10 @@ export default function Metronome() {
         />
 
         <GapClickControls
+          enabled={gapClickEnabled}
           barsOn={barsOn}
           barsOff={barsOff}
+          onEnabledChange={setGapClickEnabled}
           onBarsOnChange={handleBarsOnChange}
           onBarsOffChange={handleBarsOffChange}
         />
