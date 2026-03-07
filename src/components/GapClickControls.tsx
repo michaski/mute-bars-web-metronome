@@ -9,12 +9,12 @@ export default function GapClickControls({
   onBarsOffChange
 }: GapClickControlsProps) {
   const handleBarsOnIncrement = () => onBarsOnChange(barsOn + 1);
-  const handleBarsOnDecrement = () => onBarsOnChange(Math.max(0, barsOn - 1));
+  const handleBarsOnDecrement = () => onBarsOnChange(Math.max(1, barsOn - 1));
   const handleBarsOffIncrement = () => onBarsOffChange(barsOff + 1);
   const handleBarsOffDecrement = () => onBarsOffChange(Math.max(0, barsOff - 1));
 
   return (
-    <div className="mb-16">
+    <div className="mb-0">
       <div className="flex justify-center items-center gap-3 mb-4">
         <span className="text-gray-400 text-md">Mute Bars</span>
         <button

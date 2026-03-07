@@ -8,7 +8,7 @@ export default function BeatPattern({
   onToggleAccent
 }: BeatPatternProps) {
   return (
-    <div className="flex items-center gap-3 mb-12">
+    <div className="flex items-center gap-3 sm:mb-12">
       <button
         onClick={onRemoveBeat}
         disabled={beats.length <= 1}

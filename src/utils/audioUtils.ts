@@ -31,49 +31,98 @@ export type ClickType = keyof typeof CLICK_TYPES;
 export class AudioEngine {
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
-  private noiseBuffers: Map<ClickType, AudioBuffer> = new Map();
+  private renderedBuffers: Map<ClickType, AudioBuffer> = new Map();
+  private keepAliveOscillator: OscillatorNode | null = null;
+  private keepAliveGain: GainNode | null = null;
 
-  constructor() {
-    this.initialize();
+  public async init() {
+    if (this.audioContext) return;
+
+    this.audioContext = new AudioContext();
+    this.masterGain = this.audioContext.createGain();
+    this.masterGain.connect(this.audioContext.destination);
+    this.masterGain.gain.value = 1.0;
+
+    await this.audioContext.resume();
+    await this.preRenderClickBuffers();
   }
 
-  private initialize() {
-    try {
-      this.audioContext = new AudioContext();
-      this.masterGain = this.audioContext.createGain();
-      this.masterGain.connect(this.audioContext.destination);
-      this.masterGain.gain.value = 1.0;
-      this.preGenerateBuffers();
-    } catch (error) {
-      console.error('Failed to initialize audio:', error);
-    }
-  }
-
-  private preGenerateBuffers() {
+  private async preRenderClickBuffers() {
     if (!this.audioContext) return;
 
+    const sampleRate = this.audioContext.sampleRate;
+
     for (const [type, config] of Object.entries(CLICK_TYPES)) {
-      const bufferSize = this.audioContext.sampleRate * config.duration;
-      const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
+      const length = Math.ceil(sampleRate * config.duration);
+      const offlineCtx = new OfflineAudioContext(1, length, sampleRate);
+
+      // Create noise buffer
+      const noiseBuffer = offlineCtx.createBuffer(1, length, sampleRate);
+      const noiseData = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < length; i++) {
+        noiseData[i] = Math.random() * 2 - 1;
       }
-      this.noiseBuffers.set(type as ClickType, buffer);
+
+      // Noise source -> bandpass filter -> envelope -> destination
+      const noise = offlineCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const filter = offlineCtx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.value = (config.noiseFreqRange[0] + config.noiseFreqRange[1]) / 2;
+      filter.Q.value = 1.0;
+
+      const envelope = offlineCtx.createGain();
+      envelope.gain.value = 0;
+      envelope.gain.setValueAtTime(0, 0);
+      envelope.gain.linearRampToValueAtTime(config.volume, 0.001);
+      envelope.gain.exponentialRampToValueAtTime(0.01, config.duration);
+
+      noise.connect(filter);
+      filter.connect(envelope);
+      envelope.connect(offlineCtx.destination);
+      noise.start(0);
+
+      // Add sine wave for accent
+      if (config.sineFreq) {
+        const oscillator = offlineCtx.createOscillator();
+        oscillator.type = 'sine';
+        oscillator.frequency.value = config.sineFreq;
+
+        const sineEnvelope = offlineCtx.createGain();
+        sineEnvelope.gain.value = 0;
+        sineEnvelope.gain.setValueAtTime(0, 0);
+        sineEnvelope.gain.linearRampToValueAtTime(config.volume * 0.3, 0.001);
+        sineEnvelope.gain.exponentialRampToValueAtTime(0.01, config.duration);
+
+        oscillator.connect(sineEnvelope);
+        sineEnvelope.connect(offlineCtx.destination);
+        oscillator.start(0);
+      }
+
+      const renderedBuffer = await offlineCtx.startRendering();
+      this.renderedBuffers.set(type as ClickType, renderedBuffer);
     }
   }
 
   public async resume() {
-    if (this.audioContext?.state === 'suspended') {
+    if (!this.audioContext) {
+      await this.init();
+      return;
+    }
+    if (this.audioContext.state === 'suspended') {
       await this.audioContext.resume();
     }
   }
 
-  public async ensureRunning() {
-    if (!this.audioContext) return;
-    if (this.audioContext.state === 'suspended' || (this.audioContext.state as string) === 'interrupted') {
+  public async ensureRunning(): Promise<boolean> {
+    if (!this.audioContext) return false;
+    const state = this.audioContext.state;
+    if (state === 'suspended' || (state as string) === 'interrupted') {
       await this.audioContext.resume();
+      return true;
     }
+    return false;
   }
 
   public getState(): string {
@@ -81,77 +130,40 @@ export class AudioEngine {
   }
 
   public playClick(type: ClickType, time?: number) {
-    if (!this.audioContext || !this.masterGain) {
-      console.error('Audio context not initialized');
-      return;
-    }
-
-    const config = CLICK_TYPES[type];
-    const now = time ?? this.audioContext.currentTime;
-
-    // Create noise-based click
-    this.createNoiseClick(type, config, now);
-
-    // Add sine wave for accent
-    if (config.sineFreq) {
-      this.createSineClick(config, now);
-    }
-  }
-
-  private createNoiseClick(type: ClickType, config: ClickConfig, startTime: number) {
     if (!this.audioContext || !this.masterGain) return;
 
-    const buffer = this.noiseBuffers.get(type);
+    const buffer = this.renderedBuffers.get(type);
     if (!buffer) return;
 
-    // Create source (must be new per call, but reuses the cached buffer)
-    const noise = this.audioContext.createBufferSource();
-    noise.buffer = buffer;
-
-    // Bandpass filter to shape the noise
-    const filter = this.audioContext.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.value = (config.noiseFreqRange[0] + config.noiseFreqRange[1]) / 2;
-    filter.Q.value = 1.0;
-
-    // Envelope for natural decay
-    const envelope = this.audioContext.createGain();
-    envelope.gain.value = 0;
-    envelope.gain.setValueAtTime(0, startTime);
-    envelope.gain.linearRampToValueAtTime(config.volume, startTime + 0.001); // Fast attack
-    envelope.gain.exponentialRampToValueAtTime(0.01, startTime + config.duration);
-
-    // Connect: noise -> filter -> envelope -> master
-    noise.connect(filter);
-    filter.connect(envelope);
-    envelope.connect(this.masterGain);
-
-    // Play
-    noise.start(startTime);
-    noise.stop(startTime + config.duration);
+    const source = this.audioContext.createBufferSource();
+    source.buffer = buffer;
+    source.connect(this.masterGain);
+    source.start(time ?? this.audioContext.currentTime);
   }
 
-  private createSineClick(config: ClickConfig, startTime: number) {
-    if (!this.audioContext || !this.masterGain || !config.sineFreq) return;
+  public startKeepAlive() {
+    if (!this.audioContext || this.keepAliveOscillator) return;
 
-    const oscillator = this.audioContext.createOscillator();
-    oscillator.type = 'sine';
-    oscillator.frequency.value = config.sineFreq;
+    this.keepAliveGain = this.audioContext.createGain();
+    this.keepAliveGain.gain.value = 0;
+    this.keepAliveGain.connect(this.audioContext.destination);
 
-    // Envelope
-    const envelope = this.audioContext.createGain();
-    envelope.gain.value = 0;
-    envelope.gain.setValueAtTime(0, startTime);
-    envelope.gain.linearRampToValueAtTime(config.volume * 0.3, startTime + 0.001);
-    envelope.gain.exponentialRampToValueAtTime(0.01, startTime + config.duration);
+    this.keepAliveOscillator = this.audioContext.createOscillator();
+    this.keepAliveOscillator.frequency.value = 200;
+    this.keepAliveOscillator.connect(this.keepAliveGain);
+    this.keepAliveOscillator.start();
+  }
 
-    // Connect
-    oscillator.connect(envelope);
-    envelope.connect(this.masterGain);
-
-    // Play
-    oscillator.start(startTime);
-    oscillator.stop(startTime + config.duration);
+  public stopKeepAlive() {
+    if (this.keepAliveOscillator) {
+      this.keepAliveOscillator.stop();
+      this.keepAliveOscillator.disconnect();
+      this.keepAliveOscillator = null;
+    }
+    if (this.keepAliveGain) {
+      this.keepAliveGain.disconnect();
+      this.keepAliveGain = null;
+    }
   }
 
   public setMasterVolume(volume: number) {
@@ -165,6 +177,7 @@ export class AudioEngine {
   }
 
   public close() {
+    this.stopKeepAlive();
     if (this.audioContext) {
       this.audioContext.close();
       this.audioContext = null;

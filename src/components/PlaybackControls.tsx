@@ -2,7 +2,7 @@ import type { PlaybackControlsProps } from '../types';
 
 export default function PlaybackControls({ isPlaying, onTogglePlay }: PlaybackControlsProps) {
   return (
-    <div className="flex justify-center mb-20">
+    <div className="flex justify-center sm:mb-20">
       <button 
         onClick={onTogglePlay}
         className="w-24 h-24 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center shadow-lg transition-colors cursor-pointer"

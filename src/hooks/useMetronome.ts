@@ -139,7 +139,12 @@ export function useMetronome({
     // Check AudioContext state - try to resume if suspended
     const state = audioEngine.getState();
     if (state === 'suspended' || state === 'interrupted') {
-      audioEngine.ensureRunning();
+      audioEngine.ensureRunning().then(wasResumed => {
+        if (wasResumed) {
+          // Reset timing to prevent burst of queued clicks after resume
+          nextClickTimeRef.current = audioEngine.getCurrentTime() + 0.05;
+        }
+      });
       return;
     }
 
@@ -149,25 +154,28 @@ export function useMetronome({
     const totalPulses = getTotalPulsesPerBar();
 
     // Re-sync if we fell too far behind (e.g. after tab background / screen lock)
-    if (nextClickTimeRef.current < currentTime - 0.1) {
+    if (nextClickTimeRef.current < currentTime - 0.5) {
       const missedTime = currentTime - nextClickTimeRef.current;
       const missedPulses = Math.floor(missedTime / clickInterval);
       currentPulseRef.current += missedPulses;
       currentBarRef.current = Math.floor(currentPulseRef.current / totalPulses);
-      nextClickTimeRef.current += missedPulses * clickInterval;
+      // Jump to slightly in the future to prevent burst playback
+      nextClickTimeRef.current = currentTime + 0.05;
     }
 
     // Schedule all clicks that should happen in the next 200ms
+    let lastScheduledBeat = -1;
+    let lastScheduledBar = -1;
+    let lastScheduledGap = isInGapRef.current;
+
     while (nextClickTimeRef.current < currentTime + scheduleAheadTime) {
       const pulseIndex = currentPulseRef.current % totalPulses;
       const shouldPlay = shouldPlaySound(currentBarRef.current);
       const inGap = !shouldPlay;
 
-      // Update gap status
-      if (isInGapRef.current !== inGap) {
-        isInGapRef.current = inGap;
-        setIsInGap(inGap);
-      }
+      // Track gap status
+      isInGapRef.current = inGap;
+      lastScheduledGap = inGap;
 
       // Play click if not in gap and beat is active
       if (shouldPlay) {
@@ -177,10 +185,9 @@ export function useMetronome({
         }
       }
 
-      // Expose main beat index to UI (not pulse index)
-      const mainBeat = getMainBeatIndex(pulseIndex);
-      setCurrentBeat(mainBeat);
-      setCurrentBar(currentBarRef.current);
+      // Track last scheduled beat/bar for UI update
+      lastScheduledBeat = getMainBeatIndex(pulseIndex);
+      lastScheduledBar = currentBarRef.current;
 
       // Move to next pulse
       currentPulseRef.current++;
@@ -191,6 +198,13 @@ export function useMetronome({
       }
 
       nextClickTimeRef.current += clickInterval;
+    }
+
+    // Update UI state once per scheduler tick (not per beat)
+    if (lastScheduledBeat >= 0) {
+      setCurrentBeat(lastScheduledBeat);
+      setCurrentBar(lastScheduledBar);
+      setIsInGap(lastScheduledGap);
     }
   };
 
@@ -219,8 +233,9 @@ export function useMetronome({
   const start = async () => {
     if (!audioEngineRef.current) return;
 
-    // Resume audio context (required by browsers)
+    // Resume audio context (required by browsers, triggers lazy init)
     await audioEngineRef.current.resume();
+    audioEngineRef.current.startKeepAlive();
 
     // Initialize timing
     const currentTime = audioEngineRef.current.getCurrentTime();
@@ -244,6 +259,7 @@ export function useMetronome({
   // Stop the metronome
   const stop = () => {
     workerRef.current?.postMessage('stop');
+    audioEngineRef.current?.stopKeepAlive();
 
     setIsPlaying(false);
     isPlayingRef.current = false;
@@ -276,12 +292,12 @@ export function useMetronome({
 
   // Update interval when BPM or note value changes (even while playing)
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlayingRef.current) {
       // Reset scheduler with new settings
       stop();
       start();
     }
-  }, [bpm, noteValue, isPlaying, barsOn, barsOff, useGapClick]);
+  }, [bpm, noteValue, barsOn, barsOff, useGapClick]);
 
   return {
     isPlaying,
