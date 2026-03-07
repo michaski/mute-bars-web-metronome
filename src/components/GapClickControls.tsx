@@ -14,7 +14,7 @@ export default function GapClickControls({
   const handleBarsOffDecrement = () => onBarsOffChange(Math.max(0, barsOff - 1));
 
   return (
-    <div className="mb-16">
+    <div className="mb-0">
       <div className="flex justify-center items-center gap-3 mb-4">
         <span className="text-gray-400 text-md">Mute Bars</span>
         <button

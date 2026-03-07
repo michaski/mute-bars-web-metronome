@@ -100,8 +100,8 @@ export default function Metronome() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white py-12 px-4">
-      <div className="max-w-3xl mx-auto">
+    <div className="h-screen overflow-hidden bg-gray-900 text-white py-4 sm:py-12 px-4">
+      <div className="max-w-3xl mx-auto h-full flex flex-col justify-evenly sm:block">
 
         <TempoControl
           bpm={bpm}
