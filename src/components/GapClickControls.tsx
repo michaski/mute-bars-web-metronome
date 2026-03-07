@@ -9,7 +9,7 @@ export default function GapClickControls({
   onBarsOffChange
 }: GapClickControlsProps) {
   const handleBarsOnIncrement = () => onBarsOnChange(barsOn + 1);
-  const handleBarsOnDecrement = () => onBarsOnChange(Math.max(0, barsOn - 1));
+  const handleBarsOnDecrement = () => onBarsOnChange(Math.max(1, barsOn - 1));
   const handleBarsOffIncrement = () => onBarsOffChange(barsOff + 1);
   const handleBarsOffDecrement = () => onBarsOffChange(Math.max(0, barsOff - 1));
 
