@@ -39,22 +39,46 @@ export function useMetronome({
   // Refs for values that need to be accessed in scheduler without re-creating it
   const beatsRef = useRef<Beat[]>(beats);
   const audioEngineRef = useRef<AudioEngine | null>(null);
-  const schedulerIdRef = useRef<number | null>(null);
+  const workerRef = useRef<Worker | null>(null);
   const nextClickTimeRef = useRef<number>(0);
   const currentPulseRef = useRef<number>(0);
   const currentBarRef = useRef<number>(0);
   const isInGapRef = useRef<boolean>(false);
+  const isPlayingRef = useRef<boolean>(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const schedulerRef = useRef<() => void>(() => {});
 
   // Keep beatsRef in sync with latest beats prop
   useEffect(() => {
     beatsRef.current = beats;
   }, [beats]);
 
-  // Initialize audio engine once
+  // Initialize audio engine and worker
   useEffect(() => {
     audioEngineRef.current = new AudioEngine();
 
+    const worker = new Worker(
+      new URL('../workers/schedulerWorker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    worker.onmessage = () => {
+      schedulerRef.current();
+    };
+    workerRef.current = worker;
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden && isPlayingRef.current && audioEngineRef.current) {
+        audioEngineRef.current.ensureRunning();
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      worker.terminate();
+      workerRef.current = null;
+      releaseWakeLock();
       if (audioEngineRef.current) {
         audioEngineRef.current.close();
       }
@@ -111,12 +135,29 @@ export function useMetronome({
     if (!audioEngineRef.current) return;
 
     const audioEngine = audioEngineRef.current;
+
+    // Check AudioContext state - try to resume if suspended
+    const state = audioEngine.getState();
+    if (state === 'suspended' || state === 'interrupted') {
+      audioEngine.ensureRunning();
+      return;
+    }
+
     const currentTime = audioEngine.getCurrentTime();
-    const scheduleAheadTime = 0.1; // Schedule 100ms ahead
+    const scheduleAheadTime = 0.2; // Schedule 200ms ahead (mobile-safe)
     const clickInterval = getClickInterval();
     const totalPulses = getTotalPulsesPerBar();
 
-    // Schedule all clicks that should happen in the next 100ms
+    // Re-sync if we fell too far behind (e.g. after tab background / screen lock)
+    if (nextClickTimeRef.current < currentTime - 0.1) {
+      const missedTime = currentTime - nextClickTimeRef.current;
+      const missedPulses = Math.floor(missedTime / clickInterval);
+      currentPulseRef.current += missedPulses;
+      currentBarRef.current = Math.floor(currentPulseRef.current / totalPulses);
+      nextClickTimeRef.current += missedPulses * clickInterval;
+    }
+
+    // Schedule all clicks that should happen in the next 200ms
     while (nextClickTimeRef.current < currentTime + scheduleAheadTime) {
       const pulseIndex = currentPulseRef.current % totalPulses;
       const shouldPlay = shouldPlaySound(currentBarRef.current);
@@ -153,6 +194,27 @@ export function useMetronome({
     }
   };
 
+  // Keep schedulerRef pointing to the latest scheduler closure
+  schedulerRef.current = scheduler;
+
+  // Wake Lock helpers
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await navigator.wakeLock.request('screen');
+      }
+    } catch {
+      // Non-critical — can fail on low battery, etc.
+    }
+  };
+
+  const releaseWakeLock = async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  };
+
   // Start the metronome
   const start = async () => {
     if (!audioEngineRef.current) return;
@@ -171,19 +233,20 @@ export function useMetronome({
     setCurrentBar(0);
     setIsInGap(false);
     setIsPlaying(true);
+    isPlayingRef.current = true;
 
-    // Start the scheduler
-    schedulerIdRef.current = window.setInterval(scheduler, 25); // Check every 25ms
+    // Start the worker-based scheduler
+    workerRef.current?.postMessage('start');
+
+    requestWakeLock();
   };
 
   // Stop the metronome
   const stop = () => {
-    if (schedulerIdRef.current !== null) {
-      clearInterval(schedulerIdRef.current);
-      schedulerIdRef.current = null;
-    }
+    workerRef.current?.postMessage('stop');
 
     setIsPlaying(false);
+    isPlayingRef.current = false;
     setCurrentBeat(0);
     setCurrentBar(0);
     setIsInGap(false);
@@ -191,6 +254,8 @@ export function useMetronome({
     currentPulseRef.current = 0;
     currentBarRef.current = 0;
     isInGapRef.current = false;
+
+    releaseWakeLock();
   };
 
   // Toggle play/pause
