@@ -31,6 +31,7 @@ export type ClickType = keyof typeof CLICK_TYPES;
 export class AudioEngine {
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
+  private noiseBuffers: Map<ClickType, AudioBuffer> = new Map();
 
   constructor() {
     this.initialize();
@@ -42,8 +43,23 @@ export class AudioEngine {
       this.masterGain = this.audioContext.createGain();
       this.masterGain.connect(this.audioContext.destination);
       this.masterGain.gain.value = 1.0;
+      this.preGenerateBuffers();
     } catch (error) {
       console.error('Failed to initialize audio:', error);
+    }
+  }
+
+  private preGenerateBuffers() {
+    if (!this.audioContext) return;
+
+    for (const [type, config] of Object.entries(CLICK_TYPES)) {
+      const bufferSize = this.audioContext.sampleRate * config.duration;
+      const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      this.noiseBuffers.set(type as ClickType, buffer);
     }
   }
 
@@ -51,6 +67,17 @@ export class AudioEngine {
     if (this.audioContext?.state === 'suspended') {
       await this.audioContext.resume();
     }
+  }
+
+  public async ensureRunning() {
+    if (!this.audioContext) return;
+    if (this.audioContext.state === 'suspended' || (this.audioContext.state as string) === 'interrupted') {
+      await this.audioContext.resume();
+    }
+  }
+
+  public getState(): string {
+    return this.audioContext?.state ?? 'closed';
   }
 
   public playClick(type: ClickType, time?: number) {
@@ -63,7 +90,7 @@ export class AudioEngine {
     const now = time ?? this.audioContext.currentTime;
 
     // Create noise-based click
-    this.createNoiseClick(config, now);
+    this.createNoiseClick(type, config, now);
 
     // Add sine wave for accent
     if (config.sineFreq) {
@@ -71,19 +98,13 @@ export class AudioEngine {
     }
   }
 
-  private createNoiseClick(config: ClickConfig, startTime: number) {
+  private createNoiseClick(type: ClickType, config: ClickConfig, startTime: number) {
     if (!this.audioContext || !this.masterGain) return;
 
-    const bufferSize = this.audioContext.sampleRate * config.duration;
-    const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-    const data = buffer.getChannelData(0);
+    const buffer = this.noiseBuffers.get(type);
+    if (!buffer) return;
 
-    // Generate white noise
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    // Create source
+    // Create source (must be new per call, but reuses the cached buffer)
     const noise = this.audioContext.createBufferSource();
     noise.buffer = buffer;
 
