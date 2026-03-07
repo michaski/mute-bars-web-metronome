@@ -41,7 +41,7 @@ export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
     <>
       {/* Large BPM Display */}
       <div className="text-center sm:mb-16">
-        <div className="text-8xl font-bold text-orange-500 mb-2">
+        <div className="text-8xl font-bold text-orange-500 mb-2 relative inline-block">
           {isEditing ? (
             <input
               type="text"
@@ -53,14 +53,14 @@ export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
               className="bg-transparent border-b-4 border-orange-500 outline-none text-center w-48"
             />
           ) : (
-            <span 
+            <span
               onClick={handleClick}
               className="cursor-pointer hover:opacity-80 transition-opacity"
             >
               {bpm}
             </span>
           )}
-          <span className="text-4xl ml-4">BPM</span>
+          <span className="text-3xl absolute -right-18 bottom-3 text-orange-400">BPM</span>
         </div>
       </div>
 
