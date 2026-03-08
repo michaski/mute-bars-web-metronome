@@ -5,7 +5,7 @@ export default function NoteValueSelector({ noteValue, onNoteValueChange }: Note
   return (
     <div>
         {/* Note Value Selector */}
-        <div className="flex justify-center sm:mb-20">
+        <div className="flex justify-center">
           <select 
             value={noteValue}
             onChange={(e) => onNoteValueChange(e.target.value as NoteValue)}

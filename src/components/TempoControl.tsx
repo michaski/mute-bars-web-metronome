@@ -40,8 +40,8 @@ export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
   return (
     <>
       {/* Large BPM Display */}
-      <div className="text-center sm:mb-16">
-        <div className="text-8xl font-bold text-orange-500 mb-2">
+      <div className="text-center">
+        <div className="text-6xl sm:text-8xl font-bold text-orange-500 mb-2">
           {isEditing ? (
             <input
               type="text"
@@ -65,10 +65,10 @@ export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
       </div>
 
       {/* Tempo Slider with +/- buttons */}
-      <div className="flex items-center gap-6 sm:mb-16">
+      <div className="flex items-center gap-6">
         <button 
           onClick={handleDecrement}
-          className="w-16 h-16 rounded-full border-2 border-gray-600 hover:border-gray-500 flex items-center justify-center text-2xl transition-colors cursor-pointer"
+          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-gray-600 hover:border-gray-500 flex items-center justify-center text-2xl transition-colors cursor-pointer"
         >
           −
         </button>
@@ -89,7 +89,7 @@ export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
         
         <button 
           onClick={handleIncrement}
-          className="w-16 h-16 rounded-full border-2 border-gray-600 hover:border-gray-500 flex items-center justify-center text-2xl transition-colors cursor-pointer"
+          className="w-12 h-12 sm:w-16 sm:h-16 rounded-full border-2 border-gray-600 hover:border-gray-500 flex items-center justify-center text-2xl transition-colors cursor-pointer"
         >
           +
         </button>
