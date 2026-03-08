@@ -14,7 +14,7 @@ export default function GapClickControls({
   const handleBarsOffDecrement = () => onBarsOffChange(Math.max(0, barsOff - 1));
 
   return (
-    <div className="mb-0">
+    <div>
       <div className="flex justify-center items-center gap-3 mb-4">
         <span className="text-gray-400 text-md">Mute Bars</span>
         <button
@@ -32,8 +32,8 @@ export default function GapClickControls({
           />
         </button>
       </div>
-      <div className={`flex justify-center items-center gap-8 transition-opacity ${enabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-        <div className="flex items-center gap-3">
+      <div className={`flex flex-wrap justify-center items-center gap-x-8 gap-y-4 transition-opacity ${enabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <span className="text-gray-400 text-sm">Bars On:</span>
           <button
             onClick={handleBarsOnDecrement}
@@ -50,7 +50,7 @@ export default function GapClickControls({
           </button>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3">
           <span className="text-gray-400 text-sm">Bars Off:</span>
           <button
             onClick={handleBarsOffDecrement}
