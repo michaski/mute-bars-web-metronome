@@ -1,9 +1,16 @@
 import { useRef, useEffect } from 'react';
-import type { TempoSearchSheetProps } from '../../types/index.js';
+import type { TempoSearchSheetProps, SongSearchResult } from '../../types/index.js';
 import { useTempoSearch } from '../../hooks/useTempoSearch.js';
 import { useBottomSheet } from '../../hooks/useBottomSheet.js';
 import SearchInput from './SearchInput.js';
 import SongCard from './SongCard.js';
+
+const MOCK_SONGS: SongSearchResult[] = [
+  { id: '1', name: 'Blinding Lights', artist: 'The Weeknd', bpm: 171, timeSignature: 4, genre: 'Synth-pop' },
+  { id: '2', name: 'Shape of You', artist: 'Ed Sheeran', bpm: 96, timeSignature: 4, genre: 'Pop' },
+  { id: '3', name: 'Bohemian Rhapsody', artist: 'Queen', bpm: null, timeSignature: null, genre: 'Rock' },
+  { id: '4', name: 'Take Five', artist: 'Dave Brubeck Quartet', bpm: 172, timeSignature: 5, genre: 'Jazz' },
+];
 
 export default function TempoSearchSheet({ isOpen, onClose, onApply }: TempoSearchSheetProps) {
   const { query, setQuery, results, isLoading, error, reset } = useTempoSearch();
@@ -77,9 +84,11 @@ export default function TempoSearchSheet({ isOpen, onClose, onApply }: TempoSear
           )}
 
           {!isLoading && !error && results.length === 0 && !query.trim() && (
-            <p className="text-center text-gray-500 py-8">
-              Search for a song to find its tempo
-            </p>
+            <div className="flex flex-col gap-3">
+              {MOCK_SONGS.map((song) => (
+                <SongCard key={song.id} song={song} onApply={handleApply} />
+              ))}
+            </div>
           )}
 
           {!isLoading && results.length > 0 && (
@@ -89,6 +98,19 @@ export default function TempoSearchSheet({ isOpen, onClose, onApply }: TempoSear
               ))}
             </div>
           )}
+        </div>
+
+        {/* Attribution */}
+        <div className="px-5 py-3 border-t border-gray-700 flex-shrink-0 text-xs text-gray-500">
+          Powered by 
+          <a
+            href="https://getsongbpm.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-gray-500 ml-1 hover:text-gray-400 transition-colors"
+          >
+            GetSongBPM
+          </a>
         </div>
       </div>
     </div>

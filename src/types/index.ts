@@ -63,7 +63,6 @@ export interface SongSearchResult {
   id: string;
   name: string;
   artist: string;
-  albumArt: string | null;
   bpm: number | null;
   timeSignature: number | null;
   genre: string | null;
