@@ -47,6 +47,7 @@ export function useMetronome({
   const isPlayingRef = useRef<boolean>(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   const schedulerRef = useRef<() => void>(() => {});
+  const unsubDeviceChangeRef = useRef<(() => void) | null>(null);
 
   // Keep beatsRef in sync with latest beats prop
   useEffect(() => {
@@ -76,6 +77,7 @@ export function useMetronome({
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
+      unsubDeviceChangeRef.current?.();
       worker.terminate();
       workerRef.current = null;
       releaseWakeLock();
@@ -149,12 +151,13 @@ export function useMetronome({
     }
 
     const currentTime = audioEngine.getCurrentTime();
-    const scheduleAheadTime = 0.2; // Schedule 200ms ahead (mobile-safe)
+    const totalLatency = audioEngine.getTotalLatency();
+    const scheduleAheadTime = Math.max(0.2, totalLatency + 0.15);
     const clickInterval = getClickInterval();
     const totalPulses = getTotalPulsesPerBar();
 
     // Re-sync if we fell too far behind (e.g. after tab background / screen lock)
-    if (nextClickTimeRef.current < currentTime - 0.5) {
+    if (nextClickTimeRef.current < currentTime - Math.max(0.5, scheduleAheadTime + 0.3)) {
       const missedTime = currentTime - nextClickTimeRef.current;
       const missedPulses = Math.floor(missedTime / clickInterval);
       currentPulseRef.current += missedPulses;
@@ -236,6 +239,18 @@ export function useMetronome({
     // Resume audio context (required by browsers, triggers lazy init)
     await audioEngineRef.current.resume();
     audioEngineRef.current.startKeepAlive();
+
+    // Register device change listener (BT connect/disconnect) if not already registered
+    if (!unsubDeviceChangeRef.current) {
+      unsubDeviceChangeRef.current = audioEngineRef.current.onDeviceChange(() => {
+        if (!isPlayingRef.current || !audioEngineRef.current) return;
+        audioEngineRef.current.ensureRunning().then(() => {
+          if (audioEngineRef.current && isPlayingRef.current) {
+            nextClickTimeRef.current = audioEngineRef.current.getCurrentTime() + 0.05;
+          }
+        });
+      });
+    }
 
     // Initialize timing
     const currentTime = audioEngineRef.current.getCurrentTime();

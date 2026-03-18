@@ -38,7 +38,7 @@ export class AudioEngine {
   public async init() {
     if (this.audioContext) return;
 
-    this.audioContext = new AudioContext();
+    this.audioContext = new AudioContext({ latencyHint: 'playback' });
     this.masterGain = this.audioContext.createGain();
     this.masterGain.connect(this.audioContext.destination);
     this.masterGain.gain.value = 1.0;
@@ -170,6 +170,36 @@ export class AudioEngine {
     if (this.masterGain) {
       this.masterGain.gain.value = Math.max(0, Math.min(1, volume));
     }
+  }
+
+  public getBaseLatency(): number {
+    return this.audioContext?.baseLatency ?? 0;
+  }
+
+  public getOutputLatency(): number {
+    return (this.audioContext as any)?.outputLatency ?? 0;
+  }
+
+  public getTotalLatency(): number {
+    return this.getBaseLatency() + this.getOutputLatency();
+  }
+
+  public onDeviceChange(callback: () => void): () => void {
+    if (!this.audioContext) return () => {};
+
+    const ac = this.audioContext as any;
+
+    if ('onsinkchange' in ac) {
+      ac.addEventListener('sinkchange', callback);
+      return () => ac.removeEventListener('sinkchange', callback);
+    }
+
+    if (navigator.mediaDevices?.addEventListener) {
+      navigator.mediaDevices.addEventListener('devicechange', callback);
+      return () => navigator.mediaDevices.removeEventListener('devicechange', callback);
+    }
+
+    return () => {};
   }
 
   public getCurrentTime(): number {
