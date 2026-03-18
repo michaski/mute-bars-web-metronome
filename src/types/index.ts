@@ -66,6 +66,7 @@ export interface SongSearchResult {
   bpm: number | null;
   timeSignature: number | null;
   genre: string | null;
+  albumCover: string | null;
 }
 
 export interface TempoSearchSheetProps {

@@ -6,7 +6,22 @@ export default function SongCard({ song, onApply }: SongCardProps) {
   const timeSignature = song.timeSignature ?? DEFAULT_TIME_SIGNATURE;
 
   return (
-    <div className="flex items-center gap-3 p-4 bg-gray-750 rounded-xl border border-gray-700 hover:border-gray-600 transition-colors">
+    <div className="flex items-center gap-3 p-3 bg-gray-750 rounded-xl border border-gray-700 hover:border-gray-600 transition-colors">
+      {/* Album Cover */}
+      {song.albumCover ? (
+        <img
+          src={song.albumCover}
+          alt={`${song.name} album cover`}
+          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
+        />
+      ) : (
+        <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center flex-shrink-0">
+          <svg className="w-6 h-6 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
+          </svg>
+        </div>
+      )}
+
       {/* Song Info */}
       <div className="flex-1 min-w-0">
         <h3 className="text-white font-semibold truncate">{song.name}</h3>
