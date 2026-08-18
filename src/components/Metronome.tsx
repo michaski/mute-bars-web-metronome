@@ -1,14 +1,16 @@
 import { useState } from 'react';
-import type { Beat, BeatType, NoteValue } from '../types/index.js';
+import type { Beat, BeatType, NoteValue, SoundPack } from '../types/index.js';
 import TempoControl from './TempoControl.js';
 import BeatPattern from './BeatPattern.js';
 import NoteValueSelector from './NoteValueSelector.js';
+import SettingsPopover from './Settings/SettingsPopover.js';
+import SoundPackSetting from './Settings/SoundPackSetting.js';
 import PlaybackControls from './PlaybackControls.js';
 import GapClickControls from './GapClickControls.js';
 import TempoSearchFAB from './TempoSearch/TempoSearchFAB.js';
 import TempoSearchSheet from './TempoSearch/TempoSearchSheet.js';
 import { useMetronome } from '../hooks/useMetronome.js';
-import { DEFAULT_BPM, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
+import { DEFAULT_BPM, DEFAULT_SOUND_PACK, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
 
 export default function Metronome() {
   const [bpm, setBpm] = useState<number>(DEFAULT_BPM);
@@ -23,6 +25,7 @@ export default function Metronome() {
   const [barsOff, setBarsOff] = useState<number>(1);
   const [gapClickEnabled, setGapClickEnabled] = useState<boolean>(false);
   const [isTempoSearchOpen, setIsTempoSearchOpen] = useState(false);
+  const [soundPack, setSoundPack] = useState<SoundPack>(DEFAULT_SOUND_PACK);
 
   // Use the metronome hook
   const { isPlaying, currentBeat, toggle } = useMetronome({
@@ -32,6 +35,7 @@ export default function Metronome() {
     barsOn,
     barsOff,
     useGapClick: gapClickEnabled && barsOn > 0 && barsOff > 0,
+    soundPack,
   });
 
   // Handlers
@@ -150,6 +154,13 @@ export default function Metronome() {
         />
 
       </div>
+
+      <SettingsPopover>
+        <SoundPackSetting
+          soundPack={soundPack}
+          onSoundPackChange={setSoundPack}
+        />
+      </SettingsPopover>
 
       <TempoSearchFAB onClick={() => setIsTempoSearchOpen(true)} />
       <TempoSearchSheet

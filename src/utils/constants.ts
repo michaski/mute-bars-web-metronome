@@ -1,4 +1,4 @@
-import type { NoteValue, NoteValueOption } from '../types';
+import type { NoteValue, NoteValueOption, SoundPack, SoundPackOption } from '../types';
 
 export const NOTE_VALUE_MULTIPLIERS: Record<NoteValue, number> = {
   whole: 4,
@@ -26,6 +26,14 @@ export const NOTE_VALUES: NoteValueOption[] = [
   { value: 'sixteenth', label: '𝅘𝅥𝅯 Sixteenth Note' },
   { value: 'triplet-eighth', label: '♪♪♪ Eighth Triplet' },
 ];
+
+export const SOUND_PACKS_LIST: SoundPackOption[] = [
+  { value: 'electronic', label: 'Electronic' },
+  { value: 'wood', label: 'Wood' },
+  { value: 'metallic', label: 'Metallic' },
+];
+
+export const DEFAULT_SOUND_PACK: SoundPack = 'electronic';
 
 export const MIN_BPM = 20;
 export const MAX_BPM = 300;

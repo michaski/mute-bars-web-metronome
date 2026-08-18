@@ -6,6 +6,9 @@ export type NoteValue =
   | 'sixteenth'
   | 'triplet-eighth';
 
+import type { SoundPack } from '../utils/audioUtils.js';
+export type { SoundPack } from '../utils/audioUtils.js';
+
 export type BeatType = 'accent' | 'regular' | 'inactive';
 
 export interface Beat {
@@ -22,6 +25,11 @@ export interface TimingMetrics {
 
 export interface NoteValueOption {
   value: NoteValue;
+  label: string;
+}
+
+export interface SoundPackOption {
+  value: SoundPack;
   label: string;
 }
 
@@ -42,6 +50,11 @@ export interface BeatPatternProps {
 export interface NoteValueSelectorProps {
   noteValue: NoteValue;
   onNoteValueChange: (value: NoteValue) => void;
+}
+
+export interface SoundPackSettingProps {
+  soundPack: SoundPack;
+  onSoundPackChange: (value: SoundPack) => void;
 }
 
 export interface GapClickControlsProps {

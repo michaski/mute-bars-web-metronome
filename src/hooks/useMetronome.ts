@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Beat, NoteValue } from '../types/index.js';
+import type { Beat, NoteValue, SoundPack } from '../types/index.js';
 import type { ClickType } from '../utils/audioUtils.js';
 import { AudioEngine } from '../utils/audioUtils.js';
 import { NOTE_VALUE_MULTIPLIERS, PULSES_PER_BEAT } from '../utils/constants.js';
@@ -11,6 +11,7 @@ interface UseMetronomeProps {
   barsOn: number;
   barsOff: number;
   useGapClick: boolean;
+  soundPack: SoundPack;
 }
 
 interface UseMetronomeReturn {
@@ -30,6 +31,7 @@ export function useMetronome({
   barsOn,
   barsOff,
   useGapClick,
+  soundPack,
 }: UseMetronomeProps): UseMetronomeReturn {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentBeat, setCurrentBeat] = useState(0);
@@ -53,6 +55,11 @@ export function useMetronome({
   useEffect(() => {
     beatsRef.current = beats;
   }, [beats]);
+
+  // Apply sound pack changes immediately without restarting playback/timing
+  useEffect(() => {
+    audioEngineRef.current?.setSoundPack(soundPack);
+  }, [soundPack]);
 
   // Initialize audio engine and worker
   useEffect(() => {
@@ -238,6 +245,7 @@ export function useMetronome({
 
     // Resume audio context (required by browsers, triggers lazy init)
     await audioEngineRef.current.resume();
+    audioEngineRef.current.setSoundPack(soundPack);
     audioEngineRef.current.startKeepAlive();
 
     // Register device change listener (BT connect/disconnect) if not already registered
