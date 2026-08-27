@@ -106,8 +106,8 @@ export const SOUND_PACKS: Record<SoundPack, Record<'accent' | 'regular' | 'subdi
 
 export type ClickType = keyof typeof SOUND_PACKS['electronic'];
 
-const DEFAULT_DRIVE = 1.5;
-const OUTPUT_TRIM = 0.9;
+const DEFAULT_DRIVE = 1.0;
+const OUTPUT_TRIM = 1.0;
 const SOFT_CLIP_K = 2.0;
 
 function buildSoftClipCurve(k: number): Float32Array<ArrayBuffer> {
