@@ -1,4 +1,5 @@
 import type { BeatPatternProps } from '../types';
+import { MAX_BEATS_COUNT } from '../utils/constants.js';
 
 export default function BeatPattern({
   beats,
@@ -10,8 +11,10 @@ export default function BeatPattern({
   return (
     <div className="flex items-center gap-3">
       <button
+        type="button"
         onClick={onRemoveBeat}
         disabled={beats.length <= 1}
+        aria-label="Remove a beat"
         className="w-12 h-12 rounded-full border-2 border-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-xl flex-shrink-0 transition-colors"
       >
         −
@@ -27,7 +30,10 @@ export default function BeatPattern({
             return (
               <button
                 key={beat.id}
+                type="button"
                 onClick={() => onToggleAccent(beat.id)}
+                aria-label={`Beat ${index + 1}: ${isInactive ? 'inactive' : isAccent ? 'accent' : 'regular'}`}
+                aria-current={isCurrentBeat ? 'step' : undefined}
                 className={`w-6 h-6 rounded-full border-2 flex-shrink-0 transition-all cursor-pointer
                   ${isInactive
                     ? 'border-gray-700 opacity-30'
@@ -48,8 +54,11 @@ export default function BeatPattern({
       </div>
 
       <button
+        type="button"
         onClick={onAddBeat}
-        className="w-12 h-12 rounded-full border-2 border-gray-600 hover:border-gray-500 flex items-center justify-center text-xl flex-shrink-0 transition-colors"
+        disabled={beats.length >= MAX_BEATS_COUNT}
+        aria-label="Add a beat"
+        className="w-12 h-12 rounded-full border-2 border-gray-600 hover:border-gray-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center text-xl flex-shrink-0 transition-colors"
       >
         +
       </button>

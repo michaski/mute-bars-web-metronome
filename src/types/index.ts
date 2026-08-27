@@ -37,6 +37,8 @@ export interface SoundPackOption {
 export interface TempoControlProps {
   bpm: number;
   onBpmChange: (bpm: number) => void;
+  /** Called while the tempo slider is being dragged, to mute for the drag. */
+  onScrubChange: (active: boolean) => void;
 }
 
 export interface BeatPatternProps {
@@ -69,6 +71,8 @@ export interface GapClickControlsProps {
 export interface PlaybackControlsProps {
   isPlaying: boolean;
   onTogglePlay: () => void;
+  /** Fired on pointerdown so audio can be prepared before the click lands. */
+  onWarmup: () => void;
 }
 
 // Song Tempo Search

@@ -1,10 +1,39 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { TempoControlProps } from '../types';
 import { MIN_BPM, MAX_BPM } from '../utils/constants.js';
 
-export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
+export default function TempoControl({ bpm, onBpmChange, onScrubChange }: TempoControlProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [inputValue, setInputValue] = useState(bpm.toString());
+  const isScrubbingRef = useRef(false);
+
+  const beginScrub = () => {
+    if (isScrubbingRef.current) return;
+    isScrubbingRef.current = true;
+    onScrubChange(true);
+  };
+
+  const endScrub = () => {
+    if (!isScrubbingRef.current) return;
+    isScrubbingRef.current = false;
+    onScrubChange(false);
+  };
+
+  const endScrubRef = useRef(endScrub);
+  endScrubRef.current = endScrub;
+
+  // A pointer released outside the slider (or a drag cancelled by a system
+  // gesture) would otherwise leave the metronome muted for good.
+  useEffect(() => {
+    const handleEnd = () => endScrubRef.current();
+    window.addEventListener('pointerup', handleEnd);
+    window.addEventListener('pointercancel', handleEnd);
+    return () => {
+      window.removeEventListener('pointerup', handleEnd);
+      window.removeEventListener('pointercancel', handleEnd);
+      handleEnd();
+    };
+  }, []);
 
   const handleIncrement = () => onBpmChange(Math.min(bpm + 1, MAX_BPM));
   const handleDecrement = () => onBpmChange(Math.max(bpm - 1, MIN_BPM));
@@ -74,12 +103,17 @@ export default function TempoControl({ bpm, onBpmChange }: TempoControlProps) {
         </button>
         
         <div className="flex-1">
-          <input 
-            type="range" 
+          <input
+            type="range"
             min={MIN_BPM}
             max={MAX_BPM}
             value={bpm}
             onChange={(e) => onBpmChange(parseInt(e.target.value))}
+            onPointerDown={beginScrub}
+            onPointerUp={endScrub}
+            onPointerCancel={endScrub}
+            onLostPointerCapture={endScrub}
+            aria-label="Tempo in beats per minute"
             className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
             style={{
               background: `linear-gradient(to right, #f97316 0%, #f97316 ${((bpm - MIN_BPM) / (MAX_BPM - MIN_BPM)) * 100}%, #374151 ${((bpm - MIN_BPM) / (MAX_BPM - MIN_BPM)) * 100}%, #374151 100%)`

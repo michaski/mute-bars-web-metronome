@@ -1,3 +1,5 @@
+import { CANCEL_GUARD, STALE_RETENTION } from './constants.js';
+
 export type SoundPack = 'electronic' | 'wood' | 'metallic';
 
 export interface ClickConfig {
@@ -130,6 +132,8 @@ export class AudioEngine {
   private activePack: SoundPack = 'electronic';
   private keepAliveOscillator: OscillatorNode | null = null;
   private keepAliveGain: GainNode | null = null;
+  // Every click queued but not yet finished, so it can be un-scheduled.
+  private scheduled: Array<{ source: AudioBufferSourceNode; time: number }> = [];
 
   public async init() {
     if (this.audioContext) return;
@@ -257,6 +261,15 @@ export class AudioEngine {
     }
   }
 
+  /**
+   * Builds the context and pre-renders the click buffers ahead of first playback.
+   * Safe to call from a pointerdown handler — it satisfies the user-gesture
+   * requirement, so the nine offline renders are done before play is pressed.
+   */
+  public async warmup() {
+    await this.init();
+  }
+
   public async resume() {
     if (!this.audioContext) {
       await this.init();
@@ -291,10 +304,57 @@ export class AudioEngine {
     const buffer = this.renderedBuffers.get(this.activePack)?.get(type);
     if (!buffer) return;
 
+    const startTime = time ?? this.audioContext.currentTime;
     const source = this.audioContext.createBufferSource();
     source.buffer = buffer;
     source.connect(this.masterGain);
-    source.start(time ?? this.audioContext.currentTime);
+    source.onended = () => {
+      this.scheduled = this.scheduled.filter(e => e.source !== source);
+      source.disconnect();
+    };
+    source.start(startTime);
+    this.scheduled.push({ source, time: startTime });
+  }
+
+  /**
+   * Un-schedules every click that has not started yet and returns the cutoff used.
+   *
+   * Calling stop() on a source whose start() is still in the future means it never
+   * produces output — that is the cancellation. Clicks already sounding are left
+   * alone so they ring out naturally instead of being chopped (which would pop).
+   *
+   * Callers must reuse the returned cutoff rather than re-reading the clock:
+   * rewinding to an earlier point would re-queue a click that was left playing,
+   * and you would hear it twice.
+   *
+   * Returns 0 when there is no AudioContext.
+   */
+  public cancelPending(): number {
+    if (!this.audioContext) return 0;
+
+    const now = this.audioContext.currentTime;
+    // baseLatency covers the render quantum that may already be committed —
+    // it is sizeable under latencyHint: 'playback'.
+    const cutoff = now + Math.max(CANCEL_GUARD, this.getBaseLatency());
+
+    for (const entry of this.scheduled) {
+      if (entry.time < cutoff) continue;
+      entry.source.onended = null;
+      try {
+        entry.source.stop();
+      } catch {
+        // Already ended; disconnect below is what actually matters.
+      }
+      entry.source.disconnect();
+    }
+
+    // Drop cancelled entries, and sweep strays whose onended never arrived
+    // (event delivery can be throttled while the tab is hidden).
+    this.scheduled = this.scheduled.filter(
+      e => e.time < cutoff && e.time > now - STALE_RETENTION
+    );
+
+    return cutoff;
   }
 
   public startKeepAlive() {
@@ -328,12 +388,19 @@ export class AudioEngine {
     }
   }
 
+  // Both getters must return a finite number. A NaN here propagates into the
+  // scheduler's lookahead window, makes its `while` condition permanently false,
+  // and silently stops all playback with no error.
   public getBaseLatency(): number {
-    return this.audioContext?.baseLatency ?? 0;
+    const value = this.audioContext?.baseLatency;
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   public getOutputLatency(): number {
-    return (this.audioContext as any)?.outputLatency ?? 0;
+    // Not in the TS lib types, and unimplemented in some browsers.
+    const context = this.audioContext as (AudioContext & { outputLatency?: number }) | null;
+    const value = context?.outputLatency;
+    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   public getTotalLatency(): number {
@@ -363,6 +430,8 @@ export class AudioEngine {
   }
 
   public close() {
+    this.cancelPending();
+    this.scheduled = [];
     this.stopKeepAlive();
     this.renderedBuffers.clear();
     if (this.audioContext) {

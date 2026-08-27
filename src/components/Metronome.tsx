@@ -10,7 +10,13 @@ import GapClickControls from './GapClickControls.js';
 import TempoSearchFAB from './TempoSearch/TempoSearchFAB.js';
 import TempoSearchSheet from './TempoSearch/TempoSearchSheet.js';
 import { useMetronome } from '../hooks/useMetronome.js';
-import { DEFAULT_BPM, DEFAULT_SOUND_PACK, NOTE_VALUE_MULTIPLIERS } from '../utils/constants.js';
+import {
+  DEFAULT_BPM,
+  DEFAULT_SOUND_PACK,
+  DEFAULT_TIME_SIGNATURE,
+  MAX_BEATS_COUNT,
+  NOTE_VALUE_MULTIPLIERS,
+} from '../utils/constants.js';
 
 export default function Metronome() {
   const [bpm, setBpm] = useState<number>(DEFAULT_BPM);
@@ -28,7 +34,7 @@ export default function Metronome() {
   const [soundPack, setSoundPack] = useState<SoundPack>(DEFAULT_SOUND_PACK);
 
   // Use the metronome hook
-  const { isPlaying, currentBeat, toggle } = useMetronome({
+  const { isPlaying, currentBeat, toggle, warmup, setTempoScrubbing } = useMetronome({
     bpm,
     noteValue,
     beats,
@@ -44,7 +50,7 @@ export default function Metronome() {
   };
 
   const handleAddBeat = () => {
-    populateBeats(beats.length + 1);
+    populateBeats(Math.min(beats.length + 1, MAX_BEATS_COUNT));
   };
 
   const handleRemoveBeat = () => {
@@ -60,7 +66,7 @@ export default function Metronome() {
   };
 
   const handleToggleAccent = (id: number) => {
-    setBeats(beats.map(beat =>
+    setBeats(prev => prev.map(beat =>
       beat.id === id ? { ...beat, type: nextBeatType(beat.type) } : beat
     ));
   };
@@ -95,26 +101,33 @@ export default function Metronome() {
     setBpm(newBpm);
     setNoteValue('quarter');
     setIsTempoSearchOpen(false);
+    // time_sig comes straight from the search API and can be 0 or NaN; an empty
+    // bar would leave the scheduler with nothing to count.
+    const beatCount = Number.isFinite(timeSignature)
+      ? Math.min(Math.max(1, Math.floor(timeSignature)), MAX_BEATS_COUNT)
+      : DEFAULT_TIME_SIGNATURE;
     const newBeats: Beat[] = [];
-    for (let i = 0; i < timeSignature; i++) {
+    for (let i = 0; i < beatCount; i++) {
       newBeats.push({ id: i + 1, type: i === 0 ? 'accent' : 'regular' });
     }
     setBeats(newBeats);
   };
 
   const populateBeats = (beatCount: number) => {
-    const accentedIndexes = new Set(
-      beats.map((beat, i) => beat.type === 'accent' ? i : -1).filter(i => i >= 0)
-    );
+    setBeats(prev => {
+      const accentedIndexes = new Set(
+        prev.map((beat, i) => beat.type === 'accent' ? i : -1).filter(i => i >= 0)
+      );
 
-    const newBeats: Beat[] = [];
-    for (let i = 0; i < beatCount; i++) {
-      newBeats.push({
-        id: i + 1,
-        type: accentedIndexes.has(i) ? 'accent' : 'regular',
-      });
-    }
-    setBeats(newBeats);
+      const newBeats: Beat[] = [];
+      for (let i = 0; i < beatCount; i++) {
+        newBeats.push({
+          id: i + 1,
+          type: accentedIndexes.has(i) ? 'accent' : 'regular',
+        });
+      }
+      return newBeats;
+    });
   };
 
   return (
@@ -124,6 +137,7 @@ export default function Metronome() {
         <TempoControl
           bpm={bpm}
           onBpmChange={handleBpmChange}
+          onScrubChange={setTempoScrubbing}
         />
 
         <BeatPattern
@@ -142,6 +156,7 @@ export default function Metronome() {
         <PlaybackControls
           isPlaying={isPlaying}
           onTogglePlay={toggle}
+          onWarmup={warmup}
         />
 
         <GapClickControls

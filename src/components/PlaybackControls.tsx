@@ -1,10 +1,15 @@
 import type { PlaybackControlsProps } from '../types';
 
-export default function PlaybackControls({ isPlaying, onTogglePlay }: PlaybackControlsProps) {
+export default function PlaybackControls({ isPlaying, onTogglePlay, onWarmup }: PlaybackControlsProps) {
   return (
     <div className="flex justify-center">
       <button
+        type="button"
         onClick={onTogglePlay}
+        // pointerdown fires well before click, so the click buffers are rendered
+        // by the time playback actually starts.
+        onPointerDown={onWarmup}
+        aria-label={isPlaying ? 'Stop metronome' : 'Start metronome'}
         className="w-18 h-18 sm:w-24 sm:h-24 rounded-full bg-white hover:bg-gray-100 flex items-center justify-center shadow-lg transition-colors cursor-pointer"
       >
         {isPlaying ? (
