@@ -107,8 +107,14 @@ export function useMetronome({
   };
 
   // --- UI loop --------------------------------------------------------------
-  // The beat indicator is driven at the moment a pulse is *heard*, not when it
-  // was scheduled, so the dot stays in sync with the click even over Bluetooth.
+  // The beat indicator is driven off the scheduled click time, not a
+  // latency-compensated "heard" time: baseLatency/outputLatency are reported
+  // by mobile browsers in ways that are either wildly inflated (Bluetooth +
+  // latencyHint 'playback' can push them past a second, which used to make
+  // events age out of pendingEventsRef before ever counting as due — the dot
+  // never blinked) or jittery frame to frame (making the dot slide unevenly).
+  // They also don't reflect real Bluetooth RF/codec delay anyway, so
+  // compensating with them never bought accurate sync to begin with.
 
   const runUiLoop = () => {
     rafRef.current = requestAnimationFrame(runUiLoop);
@@ -116,14 +122,14 @@ export function useMetronome({
     const engine = audioEngineRef.current;
     if (!engine) return;
 
-    const heard = engine.getCurrentTime() - engine.getTotalLatency();
+    const currentTime = engine.getCurrentTime();
     const events = pendingEventsRef.current;
 
     // Apply only the most recent due event: after the tab returns to the
     // foreground a backlog collapses into a single state update.
     let due = -1;
     for (let i = 0; i < events.length; i++) {
-      if (events[i].time > heard) break;
+      if (events[i].time > currentTime) break;
       due = i;
     }
     if (due < 0) return;
